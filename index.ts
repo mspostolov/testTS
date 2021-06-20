@@ -39,16 +39,44 @@ if (testDepth && testDepthFmt && testFormat)
   console.log('🎉 Good! All tests passed.');
 
 // === implementation ===
+type TFormatArgs = Record<string, string | number>;
+type TFormatFunc = (arg?: TFormatArgs) => string;
 
 type Input = {
-  /* TODO type input */
-};
-type Result<T> = {
-  /* TODO type output */
+  [key: string]: string | Input;
 };
 
+type Result<T> = {
+  [K in keyof T]: T[K] extends string ? TFormatFunc : Result<T[K]>;
+};
+
+function formatFn(str: string, value?: TFormatArgs): string {
+  if (value) {
+    Object.keys(value).forEach((key) => {
+      const searchValue = `{${key}}`;
+      while (str.indexOf(searchValue) !== -1) {
+        str = str.replace(searchValue, value[key].toString());
+      }
+    });
+  }
+  return str;
+}
+
 function i18n<T extends Input>(strings: T): Result<T> {
-  let templatedStrings = strings;
-  // TODO implementation
+  let templatedStrings: Result<T>;
+  Object.keys(strings).forEach((key) => {
+    const stringKey = strings[key];
+
+    templatedStrings = {
+      ...templatedStrings,
+      [key]:
+        typeof stringKey === 'string'
+          ? (prop?: TFormatArgs) => {
+              return formatFn(stringKey, prop);
+            }
+          : i18n(stringKey),
+    };
+  });
+
   return templatedStrings;
 }
